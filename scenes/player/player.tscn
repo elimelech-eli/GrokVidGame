@@ -1,0 +1,46 @@
+[gd_scene load_steps=5 format=3 uid="uid://starwakeplayer01"]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/player/camera_rig.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/player/actor_animator.gd" id="3_anim"]
+[ext_resource type="Script" path="res://scripts/combat/weapon.gd" id="4_weapon"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.36
+height = 1.7
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 5
+floor_snap_length = 0.35
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="ActorAnimator" type="Node" parent="."]
+script = ExtResource("3_anim")
+
+[node name="CameraRig" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
+script = ExtResource("2_camera")
+
+[node name="SpringArm" type="SpringArm3D" parent="CameraRig"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.62, 0, 0)
+spring_length = 3.45
+margin = 0.18
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/SpringArm"]
+current = false
+fov = 68.0
+near = 0.08
+far = 800.0
+
+[node name="Weapon" type="Node" parent="."]
+script = ExtResource("4_weapon")
+
+[node name="Muzzle" type="Marker3D" parent="Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 1.25, -0.55)
