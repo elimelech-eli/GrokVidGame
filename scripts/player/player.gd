@@ -140,17 +140,17 @@ func _wish_direction() -> Vector3:
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if input.length_squared() < 0.01:
 		return Vector3.ZERO
-	var forward := camera_rig.flat_forward()
-	var right := camera_rig.flat_right()
+	var forward: Vector3 = camera_rig.flat_forward()
+	var right: Vector3 = camera_rig.flat_right()
 	# get_vector's Y is negative when move_forward is held.
-	var dir := right * input.x + forward * -input.y
+	var dir: Vector3 = right * input.x + forward * -input.y
 	if dir.length_squared() < 0.0001:
 		return Vector3.ZERO
 	return dir.normalized()
 
 
 func _face(wish: Vector3, delta: float) -> void:
-	var face := camera_rig.flat_forward() if (_aiming or weapon.reloading) else wish
+	var face: Vector3 = camera_rig.flat_forward() if (_aiming or weapon.reloading) else wish
 	if face.length_squared() < 0.001:
 		return
 	var target := atan2(face.x, face.z)
@@ -191,7 +191,7 @@ func _melee() -> void:
 		if body == null or seen.has(body):
 			continue
 		seen[body] = true
-		var to_enemy := body.global_position - global_position
+		var to_enemy: Vector3 = (body as Node3D).global_position - global_position
 		to_enemy.y = 0.0
 		if to_enemy.length_squared() > 0.01 and camera_rig.flat_forward().dot(to_enemy.normalized()) < 0.15:
 			continue
@@ -203,8 +203,8 @@ func _melee() -> void:
 
 func _update_prompt() -> void:
 	var space := get_world_3d().direct_space_state
-	var origin := camera_rig.camera.global_position
-	var to := origin + (-camera_rig.camera.global_basis.z) * 4.5
+	var origin: Vector3 = camera_rig.camera.global_position
+	var to: Vector3 = origin + (-camera_rig.camera.global_basis.z) * 4.5
 	var query := PhysicsRayQueryParameters3D.create(origin, to, Layers.WORLD)
 	query.exclude = [get_rid()]
 	var hit := space.intersect_ray(query)
@@ -261,7 +261,7 @@ func _attach_body() -> void:
 	var packed := load("res://assets/models/character/UAL1_Standard.glb")
 	if packed == null:
 		return
-	var model := packed.instantiate()
+	var model := packed.instantiate() as Node3D
 	visual.add_child(model)
 	PropUtils.fit_height(model, 1.78)
 	PropUtils.align_feet(model)
@@ -275,7 +275,7 @@ func _attach_weapon() -> void:
 	var packed := load("res://assets/models/essentials/Gun_Rifle.gltf")
 	if packed == null:
 		return
-	var gun := packed.instantiate()
+	var gun := packed.instantiate() as Node3D
 	var hand := _find_hand(visual)
 	var host: Node3D = hand if hand else visual
 	host.add_child(gun)

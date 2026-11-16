@@ -261,4 +261,4 @@ func _add_blend(blend: AnimationNodeBlendSpace1D, key: String, position: float) 
 		return
 	var node := AnimationNodeAnimation.new()
 	node.animation = _clips[key]
-	blend.add_blend_point(node, position)
+	blend.add_blend_point(node, position, -1, key)

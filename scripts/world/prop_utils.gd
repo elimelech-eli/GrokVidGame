@@ -70,7 +70,7 @@ static func add_static_collision(root: Node3D) -> void:
 	for mesh_instance in root.find_children("*", "MeshInstance3D", true, false):
 		if mesh_instance.mesh == null:
 			continue
-		var shape := mesh_instance.mesh.create_trimesh_shape()
+		var shape: Shape3D = mesh_instance.mesh.create_trimesh_shape()
 		if shape == null:
 			continue
 		var col := CollisionShape3D.new()
@@ -121,16 +121,17 @@ static func boost_emission(root: Node, color: Color, energy: float) -> void:
 
 
 static func play_first_animation(root: Node) -> void:
-	for player in root.find_children("*", "AnimationPlayer", true, false):
-		var names := player.get_animation_list()
+	for node in root.find_children("*", "AnimationPlayer", true, false):
+		var player := node as AnimationPlayer
+		var names: PackedStringArray = player.get_animation_list()
 		if names.is_empty():
 			return
-		var pick := names[0]
+		var pick: String = names[0]
 		for anim_name in names:
-			if "idle" in anim_name.to_lower():
+			if "idle" in String(anim_name).to_lower():
 				pick = anim_name
 				break
-		var anim := player.get_animation(pick)
+		var anim: Animation = player.get_animation(pick)
 		anim.loop_mode = Animation.LOOP_LINEAR
 		player.play(pick)
 		return

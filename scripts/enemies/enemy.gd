@@ -369,7 +369,7 @@ func _build_body() -> void:
 	var packed := load(MODEL.get(kind, MODEL["quad"]))
 	if packed == null:
 		return
-	var model := packed.instantiate()
+	var model := packed.instantiate() as Node3D
 	$Visual.add_child(model)
 	var target_height := 0.95 if flying else (1.7 if kind == "trilobite" else 1.25)
 	PropUtils.fit_height(model, target_height)

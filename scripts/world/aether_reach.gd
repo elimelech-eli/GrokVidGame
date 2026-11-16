@@ -140,13 +140,13 @@ func _spawn_enemies() -> void:
 
 
 func _add_enemy(kind: String, pos: Vector3, offsets: Array) -> void:
-	var enemy := ENEMY_SCENE.instantiate()
+	var enemy := ENEMY_SCENE.instantiate() as CharacterBody3D
 	enemy.kind = kind
 	add_child(enemy)
 	var hover := 2.6 if kind == "drone" else 0.15
 	var points := PackedVector3Array()
 	for offset in offsets:
-		var point := pos + offset
+		var point: Vector3 = pos + (offset as Vector3)
 		point.y = terrain.sample(point.x, point.z) + hover
 		points.append(point)
 	pos.y = terrain.sample(pos.x, pos.z) + hover

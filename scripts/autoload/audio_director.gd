@@ -78,8 +78,15 @@ func _play(key: String, positional: bool, world_pos: Vector3, pitch_jitter: floa
 	player.finished.connect(player.queue_free)
 
 
+func looped(key: String) -> AudioStream:
+	var stream: AudioStream = _streams.get(key)
+	if stream == null:
+		return null
+	return _looped(stream)
+
+
 func _looped(stream: AudioStream) -> AudioStream:
 	var copy := stream.duplicate()
-	if copy is AudioStreamOGGVorbis:
+	if copy is AudioStreamOggVorbis:
 		copy.loop = true
 	return copy

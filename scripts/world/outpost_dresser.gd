@@ -66,12 +66,9 @@ func _place_ship() -> Vector3:
 	ship.add_child(glow)
 	glow.position = Vector3(-3.5, 0.8, 0.0)
 	var thruster := AudioStreamPlayer3D.new()
-	if AudioDirector.has_stream("thrusterFire_000"):
-		var stream: AudioStream = AudioDirector._streams["thrusterFire_000"]
-		var loop := stream.duplicate()
-		if loop is AudioStreamOGGVorbis:
-			loop.loop = true
-		thruster.stream = loop
+	var looped := AudioDirector.looped("thrusterFire_000")
+	if looped:
+		thruster.stream = looped
 		thruster.volume_db = -16.0
 		thruster.bus = "Music"
 		thruster.max_distance = 28.0
@@ -222,12 +219,13 @@ func _scatter_nature() -> void:
 		Vector2(58, -6), Vector2(62, 12), Vector2(-40, -8), Vector2(22, 18),
 		Vector2(-8, -28), Vector2(48, 20), Vector2(-30, 32), Vector2(70, -20),
 	]
-	for cluster in clusters:
+	for cluster_value in clusters:
+		var cluster: Vector2 = cluster_value
 		var spec: Array = specs[_rng.randi() % specs.size()]
-		var count := 1 if spec[1] > 3.0 else _rng.randi_range(2, 4)
+		var count := 1 if float(spec[1]) > 3.0 else _rng.randi_range(2, 4)
 		for i in count:
-			var x := cluster.x + _rng.randf_range(-4.5, 4.5)
-			var z := cluster.y + _rng.randf_range(-4.5, 4.5)
+			var x: float = cluster.x + _rng.randf_range(-4.5, 4.5)
+			var z: float = cluster.y + _rng.randf_range(-4.5, 4.5)
 			if _blocked(x, z):
 				continue
 			var inst := _instance(spec[0])
