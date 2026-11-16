@@ -126,6 +126,10 @@ Captured from a software renderer (no SDFGI or volumetric fog). On a desktop GPU
 
 ![Third person, rifle in hand](screenshots/03_third_person.png)
 
+![Skill tree](screenshots/05_skills.png)
+
+![Capital ship headquarters board](screenshots/06_headquarters.png)
+
 ## Phase 2 controls
 
 Buy skills with K. Abilities are locked until you spend a point: 1 shield burst, 2 grenade, 3 combat drone, 4 tactical slide. I opens inventory. E on the capital-ship ramp opens the headquarters board and spends credits on rooms. J is the quest list. Saves are in the pause menu. An autosave writes while you play and when you pause.

@@ -30,7 +30,7 @@ func _build() -> void:
 	column.add_child(title)
 	var sub := UiStyle.label("AETHER REACH", 22, UiStyle.AMBER)
 	column.add_child(sub)
-	column.add_child(UiStyle.label("Your capital ship is home. The outpost is not.", 14, UiStyle.MUTED))
+	column.add_child(UiStyle.label("The capital ship is your only home.", 14, UiStyle.MUTED))
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(0, 18)
 	column.add_child(spacer)

@@ -291,6 +291,15 @@ func _shots() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await _capture_player("04_blaster")
+	EventBus.open_panel.emit("skills")
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_frame("05_skills")
+	EventBus.open_panel.emit("close")
+	EventBus.open_panel.emit("ship")
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_frame("06_headquarters")
 	print("SHOTS_DONE")
 	get_tree().quit()
 
