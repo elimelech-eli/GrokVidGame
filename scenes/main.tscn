@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://starwakemain01"]
+[gd_scene load_steps=13 format=3 uid="uid://starwakemain01"]
 
 [ext_resource type="Script" path="res://scripts/world/aether_reach.gd" id="1_zone"]
 [ext_resource type="PackedScene" uid="uid://starwakeplayer01" path="res://scenes/player/player.tscn" id="2_player"]
@@ -7,6 +7,11 @@
 [ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="5_pause"]
 [ext_resource type="Script" path="res://scripts/ui/settings_panel.gd" id="6_settings"]
 [ext_resource type="Script" path="res://scripts/ui/death_banner.gd" id="7_death"]
+[ext_resource type="Script" path="res://scripts/ui/skill_panel.gd" id="8_skills"]
+[ext_resource type="Script" path="res://scripts/ui/inventory_panel.gd" id="9_bag"]
+[ext_resource type="Script" path="res://scripts/ui/ship_board.gd" id="10_ship"]
+[ext_resource type="Script" path="res://scripts/ui/save_panel.gd" id="11_saves"]
+[ext_resource type="Script" path="res://scripts/ui/quest_panel.gd" id="12_quests"]
 
 [node name="AetherReach" type="Node3D"]
 script = ExtResource("1_zone")
@@ -65,6 +70,51 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("6_settings")
+
+[node name="Skills" type="Control" parent="UI"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("8_skills")
+
+[node name="Inventory" type="Control" parent="UI"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("9_bag")
+
+[node name="ShipBoard" type="Control" parent="UI"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("10_ship")
+
+[node name="Saves" type="Control" parent="UI"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("11_saves")
+
+[node name="Quests" type="Control" parent="UI"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("12_quests")
 
 [node name="Death" type="Control" parent="UI"]
 visible = false

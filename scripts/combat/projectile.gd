@@ -43,7 +43,10 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	var step := _dir * speed * delta
+	var time_scale := 1.0
+	if source == null or not source.is_in_group("player"):
+		time_scale = GameState.world_time_scale
+	var step := _dir * speed * delta * time_scale
 	var from := global_position
 	var to := from + step
 	var space := get_world_3d().direct_space_state

@@ -36,6 +36,8 @@ var _muzzle: Marker3D
 var _player: Node3D
 var _hit_flash := 0.0
 var _overlay: StandardMaterial3D
+var world_id := ""
+var _agent: NavigationAgent3D
 
 
 func _ready() -> void:
@@ -55,6 +57,15 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	_build_body()
+	if not flying:
+		_agent = NavigationAgent3D.new()
+		_agent.path_desired_distance = 0.75
+		_agent.target_desired_distance = 1.3
+		_agent.radius = 0.45
+		_agent.height = 1.4
+		_agent.avoidance_enabled = true
+		_agent.max_speed = move_speed
+		add_child(_agent)
 	_overlay = StandardMaterial3D.new()
 	_overlay.albedo_color = Color(1, 0.35, 0.25, 1)
 	_overlay.emission_enabled = true
@@ -117,9 +128,10 @@ func _physics_process(delta: float) -> void:
 		State.DEAD:
 			return
 	_separate()
+	var clock := GameState.world_time_scale
 	if not flying:
 		if not is_on_floor():
-			velocity.y -= 22.0 * delta
+			velocity.y -= 22.0 * delta * clock
 		else:
 			velocity.y = -0.5
 	move_and_slide()
@@ -146,7 +158,7 @@ func _patrol(delta: float) -> void:
 		_patrol_index = (_patrol_index + 1) % patrol.size()
 		_wait = 0.9
 		return
-	_move_toward(offset.normalized(), move_speed * 0.72, delta)
+	_steer(target, move_speed * 0.72, delta)
 	_face(offset, delta)
 
 
@@ -161,7 +173,7 @@ func _chase(delta: float) -> void:
 		offset.y = 0.0
 	if offset.length_squared() < 0.04:
 		return
-	_move_toward(offset.normalized(), move_speed, delta)
+	_steer(aim, move_speed, delta)
 	_face(offset, delta)
 
 
@@ -208,13 +220,31 @@ func _shoot(direction: Vector3) -> void:
 	bolt.setup(origin, direction)
 
 
+func _steer(target: Vector3, speed: float, delta: float) -> void:
+	var dir := target - global_position
+	if not flying and _agent != null and _navigation_ready():
+		_agent.target_position = target
+		var next := _agent.get_next_path_position()
+		dir = next - global_position
+	dir.y = 0.0 if not flying else dir.y
+	if dir.length_squared() < 0.0025:
+		return
+	_move_toward(dir.normalized(), speed, delta)
+
+
+func _navigation_ready() -> bool:
+	var map: RID = _agent.get_navigation_map()
+	return NavigationServer3D.map_get_iteration_id(map) > 0
+
+
 func _move_toward(direction: Vector3, speed: float, delta: float) -> void:
+	var scaled := speed * GameState.world_time_scale
 	var dir := direction
 	if flying:
-		velocity = velocity.move_toward(dir * speed, 18.0 * delta)
+		velocity = velocity.move_toward(dir * scaled, 18.0 * delta)
 	else:
-		velocity.x = move_toward(velocity.x, dir.x * speed, 16.0 * delta)
-		velocity.z = move_toward(velocity.z, dir.z * speed, 16.0 * delta)
+		velocity.x = move_toward(velocity.x, dir.x * scaled, 16.0 * delta)
+		velocity.z = move_toward(velocity.z, dir.z * scaled, 16.0 * delta)
 
 
 func _face(direction: Vector3, delta: float) -> void:
@@ -314,6 +344,9 @@ func _on_died() -> void:
 	if animator:
 		animator.trigger("death")
 	GameState.register_kill(kind)
+	GameState.mark_enemy_dead(world_id)
+	var bias := "weapon" if kind == "quad" else ("tech" if kind == "drone" else "armor")
+	Inventory.drop_in_world(global_position, bias)
 	AudioDirector.play_at("lowFrequency_explosion_000", global_position, 0.04, -6.0)
 	var tween := create_tween()
 	tween.tween_interval(1.6)
