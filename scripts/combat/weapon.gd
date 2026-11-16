@@ -57,7 +57,12 @@ func try_fire() -> void:
 	if camera == null:
 		return
 	magazine -= 1
-	_cooldown = fire_interval
+	var damage_scale := 1.0
+	var rate_scale := 1.0
+	if has_node("/root/Stats"):
+		damage_scale = Stats.get_value("weapon_damage")
+		rate_scale = maxf(Stats.get_value("fire_rate"), 0.3)
+	_cooldown = fire_interval / rate_scale
 	_emit_ammo()
 	var origin := camera.global_position
 	var direction := -camera.global_basis.z
@@ -68,8 +73,11 @@ func try_fire() -> void:
 	bolt.set_script(BOLT)
 	get_tree().current_scene.add_child(bolt)
 	bolt.speed = bolt_speed
-	bolt.damage = damage
+	bolt.damage = damage * damage_scale
 	bolt.color = Color(0.72, 0.96, 1.0)
+	var gear := Inventory.equipped_item("weapon")
+	if not gear.is_empty():
+		bolt.color = Color(String(gear.get("color", "#9ad7ff")))
 	bolt.mask = Layers.WORLD | Layers.ENEMY
 	bolt.source = source
 	bolt.life = 1.4

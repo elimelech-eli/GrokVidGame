@@ -13,6 +13,8 @@ var _root: Node3D
 var _terrain: TerrainField
 var _module_scale := 1.0
 var _rng := RandomNumberGenerator.new()
+var _spawn := Vector3(-8.0, 0.0, 14.0)
+var _loot_n := 1
 
 
 func dress(root: Node3D, terrain: TerrainField) -> Dictionary:
@@ -20,15 +22,18 @@ func dress(root: Node3D, terrain: TerrainField) -> Dictionary:
 	_terrain = terrain
 	_rng.seed = 1407
 	_calibrate()
-	var ship_pos := _place_ship()
+	var ship_pos := _place_capital()
 	var deck := _place_outpost()
 	_scatter_nature()
 	_place_fauna()
 	_place_pool()
+	var sx := _spawn.x
+	var sz := _spawn.z
 	return {
-		"spawn": Vector3(-1.5, _terrain.sample(-1.5, 6.5), 6.5),
+		"spawn": Vector3(sx, _terrain.sample(sx, sz), sz),
 		"ship": ship_pos,
 		"outpost": deck,
+		"pool": Vector3(-34.0, _terrain.sample(-34.0, 26.0), 26.0),
 		"look": deck + Vector3(0, 1.6, 0),
 	}
 
@@ -44,68 +49,71 @@ func _calibrate() -> void:
 	print("OUTPOST_WALL_H ", height, " scale ", _module_scale)
 
 
-func _place_ship() -> Vector3:
-	var ship := _instance(SHIP + "Spaceship.fbx")
-	PropUtils.fit_longest(ship, 16.0)
-	PropUtils.tint(ship, Color("b7c0c8"), 0.05)
-	var x := -11.0
-	var z := 1.5
-	ship.position = Vector3(x, 0.0, z)
-	ship.rotation.y = deg_to_rad(28.0)
-	PropUtils.plant(ship, _terrain.sample(x, z))
-	PropUtils.add_static_collision(ship)
-	ship.add_to_group("ship_hub")
+func _place_capital() -> Vector3:
+	var hull := Node3D.new()
+	hull.name = "CapitalShip"
+	hull.add_to_group("ship_hub")
+	_root.add_child(hull)
+	var origin := Vector3(-28.0, 0.0, -6.0)
+	var ground := _terrain.sample(origin.x + 12.0, origin.z + 6.0)
+	var deck := _grid(OUT + "Platform_DarkPlates.gltf", origin, ground, 8, 3, hull)
+	var top := ground + deck.y
+	_wall_span(OUT + "WallAstra_Straight.gltf", Vector3(origin.x, top, origin.z), deck.x * 8.0, 0.0, true, hull)
+	_wall_span(OUT + "WallAstra_Straight.gltf", Vector3(origin.x, top, origin.z + deck.z * 3.0), deck.x * 8.0, 0.0, true, hull)
+	_wall_span(OUT + "WallAstra_Straight.gltf", Vector3(origin.x, top, origin.z), deck.z * 3.0, PI * 0.5, false, hull)
+	var ramp := _piece(OUT + "Platform_Ramp_4.gltf", 0.0, hull)
+	var ramp_size := _set_min(ramp, Vector3(origin.x + deck.x * 8.0, ground, origin.z + deck.z))
+	PropUtils.add_static_collision(ramp)
+	_spawn = Vector3(origin.x + deck.x * 8.0 + ramp_size.x + 1.5, 0.0, origin.z + deck.z * 1.5)
 	var socket := Marker3D.new()
 	socket.name = "ShipHubSocket"
-	ship.add_child(socket)
-	socket.position = Vector3(2.2, 1.4, 0.4)
-	var glow := OmniLight3D.new()
-	glow.light_color = Color("ff9a45")
-	glow.light_energy = 3.2
-	glow.omni_range = 7.0
-	glow.shadow_enabled = false
-	ship.add_child(glow)
-	glow.position = Vector3(-3.5, 0.8, 0.0)
-	var thruster := AudioStreamPlayer3D.new()
+	hull.add_child(socket)
+	socket.global_position = Vector3(origin.x + deck.x * 8.0, top, origin.z + deck.z * 1.5)
+	var light := OmniLight3D.new()
+	light.light_color = Color("ffb15a")
+	light.light_energy = 4.0
+	light.omni_range = 14.0
+	hull.add_child(light)
+	light.global_position = socket.global_position + Vector3(0, 2.2, 0)
 	var looped := AudioDirector.looped("thrusterFire_000")
 	if looped:
+		var thruster := AudioStreamPlayer3D.new()
 		thruster.stream = looped
-		thruster.volume_db = -16.0
+		thruster.volume_db = -14.0
 		thruster.bus = "Music"
-		thruster.max_distance = 28.0
-		ship.add_child(thruster)
+		thruster.max_distance = 40.0
+		hull.add_child(thruster)
+		thruster.global_position = origin + Vector3(4, 1, 4)
 		thruster.play()
-	# A second hull parked by the pad, so the outpost reads as a landing field.
-	var miner := _instance(SHIP + "craft_miner.glb")
-	PropUtils.fit_longest(miner, 7.5)
-	miner.position = Vector3(28.0, 0.0, 6.0)
-	miner.rotation.y = deg_to_rad(-40.0)
-	PropUtils.plant(miner, _terrain.sample(28.0, 6.0))
-	PropUtils.add_static_collision(miner)
-	return ship.global_position
+	var shuttle := _instance(SHIP + "Spaceship.fbx")
+	PropUtils.fit_longest(shuttle, 9.0)
+	PropUtils.tint(shuttle, Color("9aa4ae"), 0.04)
+	shuttle.position = Vector3(origin.x + 6.0, 0.0, origin.z + deck.z * 3.0 + 8.0)
+	shuttle.rotation.y = deg_to_rad(70.0)
+	PropUtils.plant(shuttle, _terrain.sample(shuttle.position.x, shuttle.position.z))
+	PropUtils.add_static_collision(shuttle)
+	shuttle.add_to_group("shuttle")
+	return socket.global_position
 
 
 func _place_outpost() -> Vector3:
-	var origin := Vector3(36.0, 0.0, -10.0)
-	var ground := _terrain.sample(origin.x, origin.z)
-	var platform := _measured(OUT + "Platform_DarkPlates.gltf")
-	var tile: Vector3 = platform["size"]
-	var cols := 3
-	var rows := 2
-	for row in rows:
-		for col in cols:
-			var inst := _instance(OUT + "Platform_DarkPlates.gltf")
-			_apply_module_scale(inst)
-			var box := PropUtils.merged_local_aabb(inst)
-			var min_x := origin.x + (float(col) - 1.0) * box.size.x
-			var min_z := origin.z + (float(row) - 0.5) * box.size.z
-			inst.position = Vector3(min_x, ground, min_z) - box.position
-			PropUtils.add_static_collision(inst)
-	var deck_top := ground + tile.y
-	# Walls from the free modular set do not share one pivot, so a generated
-	# ring floats. The camp is the deck, crates, lights, and the dish instead.
-	_props(origin, deck_top)
-	return Vector3(origin.x + tile.x, deck_top, origin.z + tile.z * 0.5)
+	var origin := Vector3(34.0, 0.0, -16.0)
+	var ground := _terrain.sample(origin.x + 6.0, origin.z + 6.0)
+	var compound := Node3D.new()
+	compound.name = "Outpost"
+	_root.add_child(compound)
+	var deck := _grid(OUT + "Platform_DarkPlates.gltf", origin, ground, 4, 4, compound)
+	var top := ground + deck.y
+	_wall_span(OUT + "WallAstra_Straight.gltf", Vector3(origin.x, top, origin.z), deck.x * 4.0, 0.0, true, compound)
+	_wall_span(OUT + "WallAstra_Straight_Window.gltf", Vector3(origin.x, top, origin.z + deck.z * 4.0), deck.x * 4.0, 0.0, true, compound)
+	_wall_span(OUT + "WallAstra_Straight.gltf", Vector3(origin.x, top, origin.z), deck.z * 4.0, PI * 0.5, false, compound)
+	_wall_span(OUT + "WallAstra_Straight.gltf", Vector3(origin.x + deck.x * 4.0, top, origin.z), deck.z * 1.15, PI * 0.5, false, compound)
+	_wall_span(OUT + "WallAstra_Straight.gltf", Vector3(origin.x + deck.x * 4.0, top, origin.z + deck.z * 2.7), deck.z * 1.3, PI * 0.5, false, compound)
+	var door := _piece(OUT + "Door_Frame_Square.gltf", PI * 0.5, compound)
+	_set_min(door, Vector3(origin.x + deck.x * 4.0, top, origin.z + deck.z * 1.2))
+	PropUtils.add_static_collision(door)
+	_props(origin + Vector3(deck.x * 0.3, 0, deck.z * 0.3), top)
+	return Vector3(origin.x + deck.x * 2.0, top, origin.z + deck.z * 2.0)
 
 
 func _wall_run(origin: Vector3, deck_top: float, tile: Vector3) -> void:
@@ -173,8 +181,11 @@ func _props(origin: Vector3, deck_top: float) -> void:
 			light.shadow_enabled = "Wide" in String(item[0])
 			inst.add_child(light)
 			light.position.y = 0.4
-		elif "Crate" in String(item[0]) or "Locker" in String(item[0]) or "Desk" in String(item[0]) or "Satellite" in String(item[0]):
+		elif "Crate" in String(item[0]) or "Locker" in String(item[0]) or "Desk" in String(item[0]) or "Satellite" in String(item[0]) or "Chest" in String(item[0]):
 			PropUtils.add_static_collision(inst)
+			if "Chest" in String(item[0]) or "Crate_Large" in String(item[0]) or "Locker" in String(item[0]):
+				_tag_loot(inst, "cache_%d" % _loot_n, "armor" if "Chest" in String(item[0]) else "weapon")
+				_loot_n += 1
 
 
 func _stairs(origin: Vector3, ground: float, deck_top: float) -> void:
@@ -311,13 +322,65 @@ func _apply_module_scale(inst: Node3D) -> void:
 	inst.scale = Vector3.ONE * _module_scale
 
 
-func _instance(path: String) -> Node3D:
+func _grid(path: String, origin: Vector3, ground_y: float, cols: int, rows: int, parent: Node) -> Vector3:
+	var first := _piece(path, 0.0, parent)
+	var size := _set_min(first, Vector3(origin.x, ground_y, origin.z))
+	PropUtils.add_static_collision(first)
+	for row in rows:
+		for col in cols:
+			if row == 0 and col == 0:
+				continue
+			var inst := _piece(path, 0.0, parent)
+			_set_min(inst, Vector3(origin.x + size.x * col, ground_y, origin.z + size.z * row))
+			PropUtils.add_static_collision(inst)
+	return size
+
+
+func _wall_span(path: String, start: Vector3, length: float, yaw: float, along_x: bool, parent: Node) -> void:
+	var covered := 0.0
+	var cursor := start
+	var guard := 0
+	while covered < length - 0.05 and guard < 14:
+		guard += 1
+		var inst := _piece(path, yaw, parent)
+		var size := _set_min(inst, cursor)
+		PropUtils.add_static_collision(inst)
+		var step := size.x if along_x else size.z
+		if step < 0.15:
+			break
+		covered += step
+		cursor += Vector3(step, 0, 0) if along_x else Vector3(0, 0, step)
+
+
+func _piece(path: String, yaw: float, parent: Node) -> Node3D:
+	var inst := _instance(path, parent)
+	_apply_module_scale(inst)
+	inst.rotation.y = yaw
+	return inst
+
+
+func _set_min(inst: Node3D, min_corner: Vector3) -> Vector3:
+	var box := PropUtils.global_aabb(inst)
+	inst.global_position += min_corner - box.position
+	return PropUtils.global_aabb(inst).size
+
+
+func _tag_loot(inst: Node, id: String, bias: String) -> void:
+	inst.add_to_group("loot_container")
+	inst.set_script(load("res://scripts/rpg/loot_container.gd"))
+	inst.world_id = id
+	inst.bias = bias
+	inst.looted = GameState.is_looted(id)
+
+
+func _instance(path: String, parent: Node = null) -> Node3D:
+	var host: Node = parent if parent != null else _root
 	var packed := load(path)
 	if packed == null:
 		push_error("Missing model %s" % path)
 		var empty := Node3D.new()
-		_root.add_child(empty)
+		host.add_child(empty)
 		return empty
 	var inst := packed.instantiate() as Node3D
-	_root.add_child(inst)
+	host.add_child(inst)
 	return inst

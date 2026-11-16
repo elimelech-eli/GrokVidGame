@@ -30,20 +30,34 @@ func _build() -> void:
 	column.add_child(title)
 	var sub := UiStyle.label("AETHER REACH", 22, UiStyle.AMBER)
 	column.add_child(sub)
-	column.add_child(UiStyle.label("A landed skiff. A hostile outpost. One valley of rust and biolight.", 14, UiStyle.MUTED))
+	column.add_child(UiStyle.label("Your capital ship is home. The outpost is not.", 14, UiStyle.MUTED))
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(0, 18)
 	column.add_child(spacer)
-	var launch := UiStyle.button("Launch expedition")
+	if SaveGame.has_autosave():
+		var cont := UiStyle.button("Continue")
+		cont.pressed.connect(func():
+			var data := SaveGame.read_slot("autosave")
+			if data.is_empty():
+				return
+			SaveGame.queue(data)
+			GameState.auto_start = true
+			get_tree().reload_current_scene()
+		)
+		column.add_child(cont)
+	var launch := UiStyle.button("New expedition")
 	launch.pressed.connect(func(): EventBus.request_launch.emit())
 	column.add_child(launch)
+	var loads := UiStyle.button("Load game")
+	loads.pressed.connect(func(): EventBus.open_panel.emit("saves"))
+	column.add_child(loads)
 	var settings := UiStyle.button("Settings")
 	settings.pressed.connect(_open_settings)
 	column.add_child(settings)
 	var quit := UiStyle.button("Quit")
 	quit.pressed.connect(func(): get_tree().quit())
 	column.add_child(quit)
-	var footer := UiStyle.label("Phase 1  ·  third-person prototype", 13, UiStyle.MUTED)
+	var footer := UiStyle.label("Phase 2  ·  the ship is headquarters", 13, UiStyle.MUTED)
 	footer.position = Vector2(72, 980)
 	footer.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	footer.offset_left = 72

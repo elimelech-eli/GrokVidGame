@@ -21,6 +21,13 @@ func _ready() -> void:
 	_action("melee", [key(KEY_F), key(KEY_V), joy_button(JOY_BUTTON_Y)])
 	_action("interact", [key(KEY_E), joy_button(JOY_BUTTON_DPAD_UP)])
 	_action("pause", [key(KEY_ESCAPE), joy_button(JOY_BUTTON_START)])
+	_action("ability_1", [key(KEY_1), joy_button(JOY_BUTTON_DPAD_LEFT)])
+	_action("ability_2", [key(KEY_2), joy_button(JOY_BUTTON_DPAD_DOWN)])
+	_action("ability_3", [key(KEY_3), joy_button(JOY_BUTTON_DPAD_RIGHT)])
+	_action("ability_4", [key(KEY_4), joy_button(JOY_BUTTON_BACK)])
+	_action("inventory", [key(KEY_I), key(KEY_TAB)])
+	_action("skills", [key(KEY_K)])
+	_action("quests", [key(KEY_J)])
 
 
 func _action(action: String, events: Array) -> void:

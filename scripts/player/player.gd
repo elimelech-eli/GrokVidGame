@@ -28,6 +28,10 @@ var _melee_cd := 0.0
 var _foot_time := 0.0
 var _aiming := false
 var _model_ready := false
+var _stats_ready := false
+var _explore := 0.0
+var _chest_mat: StandardMaterial3D
+var _helm_mat: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -55,6 +59,14 @@ func _ready() -> void:
 	weapon.fired.connect(_on_fired)
 	_attach_body()
 	_attach_weapon()
+	var powers := Node.new()
+	powers.name = "Abilities"
+	powers.set_script(load("res://scripts/rpg/abilities.gd"))
+	add_child(powers)
+	powers.setup(self)
+	EventBus.stats_changed.connect(_apply_stats)
+	EventBus.inventory_changed.connect(_refresh_gear_colors)
+	_apply_stats()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -110,6 +122,7 @@ func _physics_process(delta: float) -> void:
 			speed = AIM_SPEED
 		elif Input.is_action_pressed("sprint") and wish.length_squared() > 0.1:
 			speed = SPRINT_SPEED
+		speed *= Stats.get_value("move_speed")
 		velocity.x = wish.x * speed
 		velocity.z = wish.z * speed
 		if _jump_buffer > 0.0 and _coyote > 0.0:
@@ -134,6 +147,10 @@ func _physics_process(delta: float) -> void:
 	camera_rig.set_bob(planar if is_on_floor() and _dodge_time <= 0.0 else 0.0)
 	animator.notify_locomotion(planar, Input.is_action_pressed("sprint") and not _aiming, is_on_floor(), velocity.y)
 	_footsteps(delta, planar)
+	_explore -= delta
+	if _explore <= 0.0:
+		_explore = 0.7
+		_check_explore()
 
 
 func _wish_direction() -> Vector3:
@@ -196,7 +213,7 @@ func _melee() -> void:
 		if to_enemy.length_squared() > 0.01 and camera_rig.flat_forward().dot(to_enemy.normalized()) < 0.15:
 			continue
 		if body.has_node("Health"):
-			body.get_node("Health").apply_damage(36.0, body.global_position, -to_enemy.normalized(), self)
+			body.get_node("Health").apply_damage(36.0 * Stats.get_value("melee_damage"), body.global_position, -to_enemy.normalized(), self)
 			EventBus.hit_confirm.emit()
 			CombatVfx.impact(get_tree().current_scene, body.global_position + Vector3.UP, Vector3.UP, Color(1.0, 0.75, 0.45), true)
 
@@ -209,13 +226,25 @@ func _update_prompt() -> void:
 	query.exclude = [get_rid()]
 	var hit := space.intersect_ray(query)
 	var text := ""
+	var loot: Node = null
+	var ship := false
 	if not hit.is_empty():
 		var node := hit.collider as Node
 		while node:
+			if loot == null and node.is_in_group("loot_container"):
+				loot = node
 			if node.is_in_group("ship_hub"):
-				text = "E    Ship hub sealed  —  boarding opens in a later phase"
-				break
+				ship = true
 			node = node.get_parent()
+	if loot and loot.has_method("prompt"):
+		text = "E    " + String(loot.prompt())
+		if Input.is_action_just_pressed("interact"):
+			loot.try_loot()
+	elif ship:
+		text = "E    Aether boarding ramp  —  your headquarters"
+		if Input.is_action_just_pressed("interact"):
+			GameState.complete_quest("inspect_ship")
+			EventBus.open_panel.emit("ship")
 	EventBus.interaction_prompt.emit(text)
 
 
@@ -265,7 +294,8 @@ func _attach_body() -> void:
 	visual.add_child(model)
 	PropUtils.fit_height(model, 1.78)
 	PropUtils.align_feet(model)
-	PropUtils.tint(model, Color("6d7c8a"), 0.0)
+	PropUtils.tint(model, Color("4a5562"), 0.0)
+	_dress_armor(model)
 	# Quaternius' Godot/Unreal mannequin faces +Z. Godot forward is -Z.
 	model.rotation.y = PI
 	animator.setup(model, "human")
@@ -288,6 +318,93 @@ func _attach_weapon() -> void:
 		gun.position = Vector3(0.28, 1.15, -0.35)
 		gun.rotation_degrees = Vector3(0, 0, 0)
 	muzzle.top_level = false
+
+
+func _apply_stats() -> void:
+	var max_h := Stats.get_value("max_health")
+	var max_s := Stats.get_value("max_shield")
+	var h_ratio := 1.0 if health.max_health <= 0.0 else health.health / health.max_health
+	var s_ratio := 1.0 if health.max_shield <= 0.0 else health.shield / health.max_shield
+	health.max_health = max_h
+	health.max_shield = max_s
+	health.shield_regen = Stats.get_value("shield_regen")
+	if not _stats_ready:
+		health.health = max_h
+		health.shield = max_s
+		_stats_ready = true
+	else:
+		health.health = minf(max_h, h_ratio * max_h)
+		health.shield = minf(max_s, s_ratio * max_s)
+	health.health_changed.emit(health.health, health.max_health)
+	health.shield_changed.emit(health.shield, health.max_shield)
+	_sync_vitals()
+
+
+func _refresh_gear_colors() -> void:
+	if _chest_mat:
+		_chest_mat.albedo_color = Inventory.equipped_color("chest")
+	if _helm_mat:
+		_helm_mat.albedo_color = Inventory.equipped_color("head")
+
+
+func _check_explore() -> void:
+	var pool: Variant = GameState.landmarks.get("pool", null)
+	if pool is Vector3 and global_position.distance_to(pool) < 11.0:
+		GameState.discover("pool")
+	var camp: Variant = GameState.landmarks.get("outpost", null)
+	if camp is Vector3 and global_position.distance_to(camp) < 14.0:
+		GameState.discover("outpost")
+
+
+func _dress_armor(model: Node3D) -> void:
+	var skeleton: Skeleton3D = null
+	for node in model.find_children("*", "Skeleton3D", true, false):
+		skeleton = node
+		break
+	if skeleton == null:
+		return
+	_chest_mat = _armor_material(Inventory.equipped_color("chest"))
+	_helm_mat = _armor_material(Inventory.equipped_color("head"))
+	_plate_on(skeleton, ["spine_03", "spine_02", "spine"], _chest_mat, Vector3(0.32, 0.36, 0.18), Vector3(0, 0.02, 0.06))
+	_plate_on(skeleton, ["head"], _helm_mat, Vector3(0.2, 0.16, 0.22), Vector3(0, 0.02, 0.02))
+	var pad := _armor_material(Color("1a242e"))
+	_plate_on(skeleton, ["upperarm_l", "leftarm"], pad, Vector3(0.12, 0.1, 0.12), Vector3(0, 0.08, 0))
+	_plate_on(skeleton, ["upperarm_r", "rightarm"], pad, Vector3(0.12, 0.1, 0.12), Vector3(0, 0.08, 0))
+
+
+func _plate_on(skeleton: Skeleton3D, hints: Array, mat: StandardMaterial3D, size: Vector3, offset: Vector3) -> void:
+	var bone := -1
+	for hint in hints:
+		for i in skeleton.get_bone_count():
+			var bone_name := String(skeleton.get_bone_name(i)).to_lower()
+			if String(hint) in bone_name:
+				bone = i
+				break
+		if bone >= 0:
+			break
+	if bone < 0:
+		return
+	var attachment := BoneAttachment3D.new()
+	attachment.bone_idx = bone
+	skeleton.add_child(attachment)
+	var mesh_instance := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	box.material = mat
+	mesh_instance.mesh = box
+	mesh_instance.position = offset
+	attachment.add_child(mesh_instance)
+
+
+func _armor_material(color: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.metallic = 0.72
+	mat.roughness = 0.38
+	mat.emission_enabled = true
+	mat.emission = Color("14343a")
+	mat.emission_energy_multiplier = 0.35
+	return mat
 
 
 func _find_hand(root: Node) -> BoneAttachment3D:

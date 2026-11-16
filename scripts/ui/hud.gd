@@ -18,8 +18,13 @@ var _ammo_label: Label
 var _reserve_label: Label
 var _prompt_label: Label
 var _zone_label: Label
+var _level_label: Label
+var _toast_label: Label
+var _ability_label: Label
 var _hurt_rect: ColorRect
 var _crosshair: Control
+var _toast_time := 0.0
+var _toast_text := ""
 
 
 func _ready() -> void:
@@ -37,6 +42,9 @@ func _ready() -> void:
 	EventBus.hit_confirm.connect(func(): _hit = 1.0)
 	EventBus.interaction_prompt.connect(func(text): _prompt = text)
 	EventBus.game_started.connect(func(): _banner = 7.0)
+	EventBus.toast.connect(_on_toast)
+	EventBus.xp_changed.connect(func(_l, _x, _n): _refresh_meta())
+	EventBus.inventory_changed.connect(func(): _refresh_meta())
 	_on_vitals(GameState.health, GameState.max_health, GameState.shield, GameState.max_shield)
 	visible = false
 
@@ -66,6 +74,9 @@ func _process(delta: float) -> void:
 		target += 4.0
 	_spread = lerpf(_spread, target, 1.0 - exp(-10.0 * delta))
 	_crosshair.queue_redraw()
+	_toast_time = maxf(_toast_time - delta, 0.0)
+	_toast_label.modulate.a = clampf(_toast_time, 0.0, 1.0)
+	_refresh_abilities()
 
 
 func _on_vitals(health: float, max_health: float, shield: float, max_shield: float) -> void:
@@ -98,6 +109,8 @@ func _build() -> void:
 	_shield_fill = _bar(stack, UiStyle.SHIELD)
 	stack.add_child(UiStyle.label("HEALTH", 12, UiStyle.HEALTH))
 	_health_fill = _bar(stack, UiStyle.HEALTH)
+	_level_label = UiStyle.label("LV 1", 14, UiStyle.INK)
+	stack.add_child(_level_label)
 	_zone_label = UiStyle.label("VESPER-9   ·   AETHER REACH", 14, UiStyle.AMBER)
 	_zone_label.position = Vector2(36, 150)
 	add_child(_zone_label)
@@ -125,11 +138,67 @@ func _build() -> void:
 	_prompt_label.offset_right = 360
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_prompt_label)
+	_ability_label = UiStyle.label("", 14, UiStyle.ACCENT)
+	_ability_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_ability_label.offset_top = -150
+	_ability_label.offset_bottom = -110
+	_ability_label.offset_left = -420
+	_ability_label.offset_right = 420
+	_ability_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(_ability_label)
+	_toast_label = UiStyle.label("", 18, UiStyle.AMBER)
+	_toast_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_toast_label.offset_top = 36
+	_toast_label.offset_bottom = 80
+	_toast_label.offset_left = -400
+	_toast_label.offset_right = 400
+	_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(_toast_label)
 	_crosshair = Control.new()
 	_crosshair.set_script(load("res://scripts/ui/crosshair.gd"))
 	_crosshair.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_crosshair)
+
+
+func _on_toast(text: String) -> void:
+	_toast_text = text
+	_toast_time = 2.4
+	_toast_label.text = text
+
+
+func _refresh_meta() -> void:
+	if _level_label == null:
+		return
+	var level := int(GameState.progression.get("level", 1))
+	var xp := int(GameState.progression.get("xp", 0))
+	var need := GameState.xp_for_level(level)
+	_level_label.text = "LV %d    %d/%d XP    %d cr" % [level, xp, need, Inventory.credits]
+
+
+func _refresh_abilities() -> void:
+	if _ability_label == null:
+		return
+	var names := ["BURST", "NADE", "DRONE", "SLIDE"]
+	var ids := ["shield_burst", "grenade", "combat_drone", "slow_dash"]
+	var parts: PackedStringArray = []
+	var powers := get_tree().get_first_node_in_group("player")
+	var node: Node = null
+	if powers:
+		node = powers.get_node_or_null("Abilities")
+	for i in ids.size():
+		var rank := GameState.skill_rank(ids[i])
+		if rank <= 0:
+			parts.append("%d %s" % [i + 1, "locked"])
+			continue
+		var left := 0.0
+		if node and node.has_method("remaining"):
+			left = node.remaining(ids[i])
+		if left > 0.1:
+			parts.append("%d %s %0.0f" % [i + 1, names[i], left])
+		else:
+			parts.append("%d %s" % [i + 1, names[i]])
+	_ability_label.text = "   ".join(parts)
 
 
 func _bar(parent: Node, color: Color) -> ColorRect:

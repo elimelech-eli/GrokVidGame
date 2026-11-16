@@ -13,21 +13,38 @@ var _menu: Control
 var _pause: Control
 var _settings: Control
 var _death: Control
+var _panels := {}
+var _overlay_lock := false
 var _fly_t := 0.4
 var _shot := false
 var _landmarks := {}
+var _enemy_serial := 1
+var _autosave := 40.0
 
 
 func _ready() -> void:
 	var launch_now := GameState.auto_start
 	GameState.auto_start = false
+	var pending := SaveGame.consume_pending()
+	if pending.is_empty():
+		GameState.reset_run()
+		Inventory.reset_new_game()
+	else:
+		SaveGame.apply(pending)
+	Stats.rebuild()
 	GameState.phase = GameState.Phase.MENU
-	GameState.kills = 0
 	player = $Player
 	_menu = $UI/MainMenu
 	_pause = $UI/PauseMenu
 	_settings = $UI/Settings
 	_death = $UI/Death
+	_panels = {
+		"skills": $UI/Skills,
+		"inventory": $UI/Inventory,
+		"ship": $UI/ShipBoard,
+		"saves": $UI/Saves,
+		"quests": $UI/Quests,
+	}
 	_menu.bind_settings(_settings)
 	_pause.bind_settings(_settings)
 	EventBus.request_launch.connect(_begin_play)
@@ -35,6 +52,7 @@ func _ready() -> void:
 	EventBus.request_resume.connect(_resume_game)
 	EventBus.request_menu.connect(_to_menu)
 	EventBus.request_retry.connect(_retry)
+	EventBus.open_panel.connect(_on_open_panel)
 	terrain = TerrainField.new()
 	terrain.name = "Terrain"
 	add_child(terrain)
@@ -44,12 +62,15 @@ func _ready() -> void:
 	cycle.setup($WorldEnvironment, $Sun, $Moon)
 	var dresser := OutpostDresser.new()
 	_landmarks = dresser.dress(self, terrain)
+	GameState.landmarks = _landmarks
 	_spawn_enemies()
+	_bake_nav()
 	var spawn: Vector3 = _landmarks["spawn"]
 	player.global_position = spawn + Vector3(0, 0.2, 0)
 	var rig := player.get_node("CameraRig")
 	rig._yaw = 78.0
 	player.get_node("Visual").rotation.y = deg_to_rad(78.0)
+	_apply_saved_player()
 	flyby = Camera3D.new()
 	flyby.name = "Flyby"
 	flyby.fov = 52.0
@@ -72,6 +93,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if GameState.phase == GameState.Phase.PLAYING and not _shot:
+		_autosave -= delta
+		if _autosave <= 0.0:
+			_autosave = 45.0
+			SaveGame.write_autosave()
 	if GameState.phase != GameState.Phase.MENU or flyby == null or _shot:
 		return
 	_fly_t += delta * 0.07
@@ -88,6 +114,8 @@ func _begin_play() -> void:
 	_pause.visible = false
 	_settings.hide()
 	_death.visible = false
+	_close_panels()
+	_overlay_lock = false
 	if flyby:
 		flyby.current = false
 	player.get_node("CameraRig/SpringArm/Camera3D").current = true
@@ -103,6 +131,7 @@ func _pause_game() -> void:
 	get_tree().paused = true
 	_pause.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	SaveGame.write_autosave()
 	EventBus.game_paused.emit(true)
 
 
@@ -111,6 +140,8 @@ func _resume_game() -> void:
 		return
 	_settings.hide()
 	_pause.visible = false
+	_close_panels()
+	_overlay_lock = false
 	get_tree().paused = false
 	GameState.phase = GameState.Phase.PLAYING
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -143,8 +174,13 @@ func _spawn_enemies() -> void:
 
 
 func _add_enemy(kind: String, pos: Vector3, offsets: Array) -> void:
+	var world_id := "%s_%d" % [kind, _enemy_serial]
+	_enemy_serial += 1
+	if GameState.is_enemy_dead(world_id):
+		return
 	var enemy := ENEMY_SCENE.instantiate() as CharacterBody3D
 	enemy.kind = kind
+	enemy.world_id = world_id
 	add_child(enemy)
 	var hover := 2.6 if kind == "drone" else 0.15
 	var points := PackedVector3Array()
@@ -154,6 +190,82 @@ func _add_enemy(kind: String, pos: Vector3, offsets: Array) -> void:
 		points.append(point)
 	pos.y = terrain.sample(pos.x, pos.z) + hover
 	enemy.configure(pos, points)
+
+
+func _on_open_panel(which: String) -> void:
+	if which == "close":
+		_close_panels()
+		if _overlay_lock and not _pause.visible:
+			_overlay_lock = false
+			get_tree().paused = false
+			if GameState.phase == GameState.Phase.PAUSED:
+				GameState.phase = GameState.Phase.PLAYING
+			if GameState.phase == GameState.Phase.PLAYING:
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		return
+	if not _panels.has(which):
+		return
+	var panel: Control = _panels[which]
+	_close_panels()
+	panel.visible = true
+	if panel.has_method("refresh"):
+		panel.refresh()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if GameState.phase == GameState.Phase.PLAYING:
+		get_tree().paused = true
+		GameState.phase = GameState.Phase.PAUSED
+		_overlay_lock = true
+
+
+func _close_panels() -> void:
+	for panel in _panels.values():
+		panel.visible = false
+
+
+func _apply_saved_player() -> void:
+	var data: Dictionary = GameState.pending_player
+	if data.is_empty():
+		return
+	var coords: Array = data.get("position", [])
+	if coords.size() == 3:
+		var x := float(coords[0])
+		var z := float(coords[2])
+		var y := maxf(float(coords[1]), terrain.sample(x, z) + 0.25)
+		player.global_position = Vector3(x, y, z)
+	var rig := player.get_node("CameraRig")
+	rig._yaw = float(data.get("yaw", rig._yaw))
+	var vitals := player.get_node("Health") as HealthComponent
+	vitals.health = minf(vitals.max_health, float(data.get("health", vitals.health)))
+	vitals.shield = minf(vitals.max_shield, float(data.get("shield", vitals.shield)))
+	vitals.health_changed.emit(vitals.health, vitals.max_health)
+	vitals.shield_changed.emit(vitals.shield, vitals.max_shield)
+	player._sync_vitals()
+	var gun := player.get_node("Weapon")
+	gun.magazine = int(data.get("magazine", gun.magazine))
+	gun.reserve = int(data.get("reserve", gun.reserve))
+	gun._emit_ammo()
+	GameState.pending_player = {}
+
+
+func _bake_nav() -> void:
+	var mesh := NavigationMesh.new()
+	mesh.cell_size = 0.5
+	mesh.cell_height = 0.3
+	mesh.agent_height = 1.7
+	mesh.agent_radius = 0.45
+	mesh.agent_max_climb = 0.5
+	mesh.agent_max_slope = 40.0
+	mesh.region_min_size = 2.0
+	mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	mesh.geometry_collision_mask = Layers.WORLD
+	var source := NavigationMeshSourceGeometryData3D.new()
+	NavigationMeshGenerator.parse_source_geometry_data(mesh, source, self)
+	NavigationMeshGenerator.bake_from_source_geometry_data(mesh, source)
+	var region := NavigationRegion3D.new()
+	region.name = "Nav"
+	region.navigation_mesh = mesh
+	add_child(region)
+	print("NAV_POLYGONS ", mesh.get_polygon_count())
 
 
 func _shots() -> void:

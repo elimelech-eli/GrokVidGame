@@ -24,8 +24,8 @@ func _build() -> void:
 	panel.custom_minimum_size = Vector2(380, 0)
 	panel.offset_left = -190
 	panel.offset_right = 190
-	panel.offset_top = -180
-	panel.offset_bottom = 180
+	panel.offset_top = -260
+	panel.offset_bottom = 260
 	add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
@@ -34,6 +34,15 @@ func _build() -> void:
 	var resume := UiStyle.button("Resume")
 	resume.pressed.connect(func(): EventBus.request_resume.emit())
 	box.add_child(resume)
+	var skills := UiStyle.button("Skills")
+	skills.pressed.connect(func(): EventBus.open_panel.emit("skills"))
+	box.add_child(skills)
+	var bag := UiStyle.button("Inventory")
+	bag.pressed.connect(func(): EventBus.open_panel.emit("inventory"))
+	box.add_child(bag)
+	var saves := UiStyle.button("Save / Load")
+	saves.pressed.connect(func(): EventBus.open_panel.emit("saves"))
+	box.add_child(saves)
 	var settings := UiStyle.button("Settings")
 	settings.pressed.connect(func():
 		if _settings:

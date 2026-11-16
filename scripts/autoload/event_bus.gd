@@ -19,3 +19,13 @@ signal request_pause
 signal request_resume
 signal request_menu
 signal request_retry
+signal stats_changed
+signal xp_changed(level: int, xp: int, xp_needed: int)
+signal level_up(level: int)
+signal skills_changed
+signal ability_cast(id: String)
+signal inventory_changed
+signal quest_updated(id: String)
+signal ship_changed
+signal toast(text: String)
+signal open_panel(panel: String)

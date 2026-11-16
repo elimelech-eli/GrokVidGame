@@ -1,6 +1,6 @@
 # Starwake
 
-Phase 1 of a PC sci-fi action RPG: a third-person surveyor on the rust flats of **Vesper-9**, beside their landed skiff, with a hostile outpost in the valley. The pitch for the full game is "Skyrim in space" — Starfield's range with Mass Effect's squad and conversation. This build is the feel of moving, aiming, and shooting in one handsome outdoor zone.
+A PC sci-fi action RPG on the rust flats of **Vesper-9**. The pitch is "Skyrim in space": Starfield's range with a Mass Effect crew. Your ship is the headquarters — a capital ship in the Starfield / Normandy sense, not a starfighter and not a separate planetside base. You live aboard it, talk to crew there, pilot it from the bridge, and fight other ships with it. The valley outpost is a hostile site, not a home.
 
 Godot **4.7.2** (stable) and GDScript. Later phases plug into the autoloads and groups instead of rewriting the player.
 
@@ -38,11 +38,15 @@ The input map is built at boot by `scripts/autoload/input_bindings.gd` (keyboard
 | Reload | R | X |
 | Melee | F or V | Y |
 | Interact | E | D-pad up |
+| Abilities | 1 2 3 4 | D-pad left, down, right, Back |
+| Inventory | I or Tab | |
+| Skills | K | |
+| Quests | J | |
 | Pause | Esc | Start |
 
 Aiming tightens the spring-arm camera and the crosshair. Shields absorb hits and recharge after a delay. The rifle has a magazine; reload or dry-fire when it is empty. Dodge rolls are briefly invulnerable.
 
-Standing at the skiff and pressing interact shows a sealed-hatch line. Boarding is a later phase. The ship is already in the `ship_hub` group, with a `ShipHubSocket` marker for that work.
+At the capital ship's boarding ramp, interact opens the headquarters board. Rooms (med bay, armory, lab, quarters, galaxy map) are bought with credits and apply bonuses through the stats system. Walking the interior comes in the next phase. The ramp marker is `ShipHubSocket` on the `ship_hub` group.
 
 ## Settings
 
@@ -97,12 +101,14 @@ Autoloads:
 
 ## Six phases
 
-1. **Core feel (this build).** Third-person move, aim, gun, melee, a few enemies, HUD, menus, one outdoor zone, day and night.
-2. **RPG layer.** Attributes, skills, inventory, loot, experience, and a quest log on `GameState.progression`, `inventory`, and `quests`.
-3. **Ship hub and upgrades.** Walk into the skiff through `ship_hub` / `ShipHubSocket`. Module sockets edit `GameState.ship`.
-4. **Ship combat.** A separate scene that reuses health, shields, and the weapon interface for craft-versus-craft.
-5. **Dialogue and followers.** Conversation drives `EventBus`. Companions reuse the enemy locomotion stack and live in `GameState.followers`.
-6. **Multi-zone open world.** More biomes and a system map. `GameState.zone_id` is already `vesper_9_aether_reach` so travel can swap it.
+The ship is the only headquarters. There is no planetside base. Every upgradable room and the abilities it grants live aboard.
+
+1. **Core feel.** Third-person move, aim, gun, melee, enemies, HUD, menus, one outdoor zone, day and night.
+2. **RPG layer (this build).** Experience, levels, a four-branch skill tree, active abilities, inventory, loot, and saves. Ship rooms are commissioned at the ramp and write into `Stats` and `GameState.ship`. The surface outpost stays a hostile site.
+3. **Ship interior.** The capital ship becomes a walkable, multi-room mobile base: bridge, med bay, armory and workbench, research lab, crew quarters, cargo, and galaxy map. You walk the decks, talk to crew, and pilot from the bridge. Upgrades you already own on `GameState.ship.rooms` become the rooms themselves. Still no separate ground headquarters.
+4. **Ship combat.** The same capital ship fights other ships. You take the helm on the bridge. Combat reuses health, shields, and the weapon interface, including piloting perks from `Stats`.
+5. **Dialogue and crew.** Conversations and followers live aboard. Persuasion and follower affinity are already stats. Companions reuse the character locomotion stack and are stored on `GameState.followers` and `GameState.crew`.
+6. **Multi-zone open world.** The ship travels between worlds. `GameState.zone_id` is `vesper_9_aether_reach` until you leave the surface. The galaxy map room is the chart table for that.
 
 ## Assets
 
@@ -120,12 +126,16 @@ Captured from a software renderer (no SDFGI or volumetric fog). On a desktop GPU
 
 ![Third person, rifle in hand](screenshots/03_third_person.png)
 
+## Phase 2 controls
+
+Buy skills with K. Abilities are locked until you spend a point: 1 shield burst, 2 grenade, 3 combat drone, 4 tactical slide. I opens inventory. E on the capital-ship ramp opens the headquarters board and spends credits on rooms. J is the quest list. Saves are in the pause menu. An autosave writes while you play and when you pause.
+
 ## Known limits
 
-- One valley. No save games, inventory, or conversation.
-- Enemy sensing is distance, a view cone, and a ray. They do not use a navigation mesh and can stall on tight props.
+- One valley. No voiced conversation yet. Crew and followers are saved but not spawned.
+- Ground enemies use a navigation mesh baked from static colliders. Drones still fly directly.
 - The mature-content toggle does not change any scene.
 - SDFGI, SSAO, and volumetric fog turn off when Godot reports a software renderer (lavapipe / llvmpipe), so a VM screenshot is flatter than a desktop GPU. On a normal GPU those features stay on: ACES tonemap, glow, a restrained color grade, and the day/night cycle (about four minutes) still run everywhere.
-- The valley is dressed from the CC0 kits at startup with a fixed seed. The outpost is a deck, column, crates, and lights. The free modular walls do not share one pivot, so they are not auto-assembled into a closed building.
-- The surveyor is Quaternius' CC0 mannequin, tinted, with the rifle on the hand bone. It is not a textured armor mesh.
+- The outpost is a walled hostile compound. The capital ship exterior is a landed hull with a boarding ramp; the walkable interior is the next phase. There is no separate planetside base.
+- The surveyor is still the CC0 mannequin, now with armor plates on the skeleton. A matching textured sci-fi body was not in the free packs.
 - Ambience is ship and wind-like engine loops. There is no music score in the CC0 packs used here.
