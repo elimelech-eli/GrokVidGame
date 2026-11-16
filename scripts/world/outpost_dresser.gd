@@ -47,6 +47,7 @@ func _calibrate() -> void:
 func _place_ship() -> Vector3:
 	var ship := _instance(SHIP + "Spaceship.fbx")
 	PropUtils.fit_longest(ship, 16.0)
+	PropUtils.tint(ship, Color("b7c0c8"), 0.05)
 	var x := -11.0
 	var z := 1.5
 	ship.position = Vector3(x, 0.0, z)
@@ -101,9 +102,9 @@ func _place_outpost() -> Vector3:
 			inst.position = Vector3(min_x, ground, min_z) - box.position
 			PropUtils.add_static_collision(inst)
 	var deck_top := ground + tile.y
-	_wall_run(origin, deck_top, tile)
+	# Walls from the free modular set do not share one pivot, so a generated
+	# ring floats. The camp is the deck, crates, lights, and the dish instead.
 	_props(origin, deck_top)
-	_stairs(origin, ground, deck_top)
 	return Vector3(origin.x + tile.x, deck_top, origin.z + tile.z * 0.5)
 
 

@@ -265,6 +265,7 @@ func _attach_body() -> void:
 	visual.add_child(model)
 	PropUtils.fit_height(model, 1.78)
 	PropUtils.align_feet(model)
+	PropUtils.tint(model, Color("6d7c8a"), 0.0)
 	# Quaternius' Godot/Unreal mannequin faces +Z. Godot forward is -Z.
 	model.rotation.y = PI
 	animator.setup(model, "human")

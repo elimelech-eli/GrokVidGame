@@ -71,7 +71,7 @@ godot --headless --path . --export-release "Windows Desktop" build/windows/Starw
 
 In the editor: Project, Export, Windows Desktop, Export Project. `build/` is gitignored.
 
-A packaged Windows build produced in this environment is attached to the pull request when the export succeeds. Copy `Starwake.exe` and `Starwake.pck` into the same folder and run the exe.
+Export with Godot 4.7.2 produces `build/windows/Starwake.exe` and `build/windows/Starwake.pck`. Keep them in the same folder and run the exe. A zip of that pair is attached to the pull request.
 
 ## Layout
 
@@ -108,11 +108,24 @@ Autoloads:
 
 Every pack, license, and URL is in [ASSETS_CREDITS.md](ASSETS_CREDITS.md). Models are Quaternius CC0. Sounds and the secondary miner are Kenney CC0. The UI face is Orbitron (OFL).
 
+## Screenshots
+
+Captured from a software renderer (no SDFGI or volumetric fog). On a desktop GPU those stay enabled.
+
+![Main menu over the landing](screenshots/00_menu.png)
+
+![Skiff on the rust flats](screenshots/01_landing.png)
+
+![Outpost camp and drones](screenshots/02_outpost.png)
+
+![Third person, rifle in hand](screenshots/03_third_person.png)
+
 ## Known limits
 
 - One valley. No save games, inventory, or conversation.
 - Enemy sensing is distance, a view cone, and a ray. They do not use a navigation mesh and can stall on tight props.
 - The mature-content toggle does not change any scene.
-- SDFGI, SSAO, and volumetric fog turn off when Godot reports a software renderer (lavapipe / llvmpipe), so a VM screenshot is flatter than a desktop GPU. On a normal GPU those features stay on: ACES tonemap, glow, color grading, and the day/night cycle (about four minutes) still run everywhere.
-- The valley is dressed procedurally from the CC0 kits at startup, so prop placement has a fixed seed rather than a hand-authored level file.
+- SDFGI, SSAO, and volumetric fog turn off when Godot reports a software renderer (lavapipe / llvmpipe), so a VM screenshot is flatter than a desktop GPU. On a normal GPU those features stay on: ACES tonemap, glow, a restrained color grade, and the day/night cycle (about four minutes) still run everywhere.
+- The valley is dressed from the CC0 kits at startup with a fixed seed. The outpost is a deck, column, crates, and lights. The free modular walls do not share one pivot, so they are not auto-assembled into a closed building.
+- The surveyor is Quaternius' CC0 mannequin, tinted, with the rifle on the hand bone. It is not a textured armor mesh.
 - Ambience is ship and wind-like engine loops. There is no music score in the CC0 packs used here.

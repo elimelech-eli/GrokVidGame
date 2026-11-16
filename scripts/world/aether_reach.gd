@@ -47,6 +47,9 @@ func _ready() -> void:
 	_spawn_enemies()
 	var spawn: Vector3 = _landmarks["spawn"]
 	player.global_position = spawn + Vector3(0, 0.2, 0)
+	var rig := player.get_node("CameraRig")
+	rig._yaw = 78.0
+	player.get_node("Visual").rotation.y = deg_to_rad(78.0)
 	flyby = Camera3D.new()
 	flyby.name = "Flyby"
 	flyby.fov = 52.0
@@ -156,14 +159,16 @@ func _add_enemy(kind: String, pos: Vector3, offsets: Array) -> void:
 func _shots() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	get_viewport().msaa_3d = Viewport.MSAA_DISABLED
-	_begin_play()
 	cycle.locked = true
 	cycle.time = 0.40
 	cycle._apply()
+	await get_tree().create_timer(0.45).timeout
+	await _capture("00_menu", Vector3(4, 6.5, 16), _landmarks.get("ship", Vector3(-8, 2, 2)))
+	_begin_play()
 	if player.has_node("Health"):
 		player.get_node("Health").invulnerable = true
-	await get_tree().create_timer(0.8).timeout
-	await _capture("01_landing", Vector3(-6, 7.5, 18), _landmarks.get("look", Vector3(20, 2, -4)))
+	await get_tree().create_timer(0.4).timeout
+	await _capture("01_landing", Vector3(-4, 5.5, 14), _landmarks.get("ship", Vector3(-8, 2, 2)))
 	await _capture("02_outpost", Vector3(22, 8, 16), _landmarks.get("outpost", Vector3(42, 2, -8)))
 	player.global_position = Vector3(16, terrain.sample(16, -2) + 0.3, -2)
 	await get_tree().physics_frame
