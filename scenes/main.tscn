@@ -1,0 +1,78 @@
+[gd_scene load_steps=8 format=3 uid="uid://starwakemain01"]
+
+[ext_resource type="Script" path="res://scripts/world/aether_reach.gd" id="1_zone"]
+[ext_resource type="PackedScene" uid="uid://starwakeplayer01" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="3_hud"]
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="4_menu"]
+[ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="5_pause"]
+[ext_resource type="Script" path="res://scripts/ui/settings_panel.gd" id="6_settings"]
+[ext_resource type="Script" path="res://scripts/ui/death_banner.gd" id="7_death"]
+
+[node name="AetherReach" type="Node3D"]
+script = ExtResource("1_zone")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+shadow_enabled = true
+shadow_bias = 0.05
+
+[node name="Moon" type="DirectionalLight3D" parent="."]
+light_energy = 0.2
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 10
+process_mode = 3
+
+[node name="Hud" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_hud")
+
+[node name="MainMenu" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_menu")
+
+[node name="PauseMenu" type="Control" parent="UI"]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_pause")
+
+[node name="Settings" type="Control" parent="UI"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_settings")
+
+[node name="Death" type="Control" parent="UI"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_death")

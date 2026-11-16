@@ -33,6 +33,7 @@ var ship := {
 }
 var followers: Array = []
 var kills := 0
+var auto_start := false
 
 
 func set_vitals(h: float, max_h: float, s: float, max_s: float) -> void:

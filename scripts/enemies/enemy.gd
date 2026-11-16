@@ -240,8 +240,12 @@ func _can_see_player() -> bool:
 	if dist > sight_range:
 		return false
 	var flat := Vector3(to.x, 0.0, to.z)
-	var model := $Visual.get_child(0) as Node3D if $Visual.get_child_count() > 0 else null
-	var facing := (-model.global_basis.z) if model else Vector3(0, 0, -1)
+	var model: Node3D = null
+	if $Visual.get_child_count() > 0:
+		model = $Visual.get_child(0) as Node3D
+	var facing := Vector3(0, 0, -1)
+	if model:
+		facing = -model.global_basis.z
 	facing.y = 0.0
 	if flat.length() > 0.1 and facing.length() > 0.1 and facing.normalized().dot(flat.normalized()) < 0.1 and dist > 4.0:
 		return false
