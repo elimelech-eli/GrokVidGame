@@ -154,6 +154,8 @@ func _add_enemy(kind: String, pos: Vector3, offsets: Array) -> void:
 
 
 func _shots() -> void:
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	get_viewport().msaa_3d = Viewport.MSAA_DISABLED
 	_begin_play()
 	cycle.locked = true
 	cycle.time = 0.40

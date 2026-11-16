@@ -71,9 +71,9 @@ func setup(world_env: WorldEnvironment, sun_light: DirectionalLight3D, moon_ligh
 	grade_tex.width = 256
 	environment.adjustment_color_correction = grade_tex
 	world_env.environment = environment
-	sun.shadow_enabled = true
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	sun.directional_shadow_max_distance = 90.0
+	sun.shadow_enabled = not _software
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if _software else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_max_distance = 48.0 if _software else 90.0
 	sun.directional_shadow_blend_splits = true
 	sun.light_angular_distance = 0.18
 	moon.shadow_enabled = false
